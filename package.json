@@ -1,0 +1,37 @@
+{
+  "name": "scratch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first terminal scratchpad with lazygit-style keybindings.",
+  "type": "module",
+  "bin": {
+    "scratch": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "clipboardy": "^4.0.0",
+    "commander": "^12.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.25",
+    "@types/node": "^22.13.4",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "eslint": "^8.57.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}
