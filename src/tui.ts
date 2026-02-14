@@ -73,6 +73,8 @@ const wrapLongText = (value: string, maxWidth: number): string[] => {
   return wrappedLines.filter((line) => line.length > 0);
 };
 
+const getPinIndicator = (note: Note): string => (note.pinned ? "*" : " ");
+
 const isPrintableCharacter = (
   character: string | undefined,
   key: blessed.Widgets.Events.IKeyEventArg
@@ -219,6 +221,7 @@ export const runTui = async (): Promise<number> => {
   const state = createEmptyState();
   let footerMessageTimeout: NodeJS.Timeout | undefined;
   let isHandlingAsyncOperation = false;
+  let isSynchronizingListSelection = false;
 
   const getFilteredNotes = (): Note[] => filterNotes(state.notes, state.filterQuery);
 
@@ -293,8 +296,7 @@ export const runTui = async (): Promise<number> => {
         : filteredNotes.map((note) => {
             const globalIndex = indexMap.get(note.id) ?? 0;
             const indexLabel = String(globalIndex).padStart(indexDigits, " ");
-            const pinLabel = note.pinned ? "P" : " ";
-            const prefix = `[${indexLabel}] [${pinLabel}] `;
+            const prefix = `[${indexLabel}] ${getPinIndicator(note)} `;
             const wrappedTextLines = wrapLongText(
               note.text,
               Math.max(8, listWidth - prefix.length)
@@ -310,8 +312,18 @@ export const runTui = async (): Promise<number> => {
 
     notesList.setItems(items);
 
+    const selectListIndex = (selectedIndex: number): void => {
+      isSynchronizingListSelection = true;
+      try {
+        notesList.select(selectedIndex);
+        notesList.scrollTo(selectedIndex);
+      } finally {
+        isSynchronizingListSelection = false;
+      }
+    };
+
     if (filteredNotes.length === 0) {
-      notesList.select(0);
+      selectListIndex(0);
       return;
     }
 
@@ -319,8 +331,7 @@ export const runTui = async (): Promise<number> => {
       (note) => note.id === state.selectedNoteId
     );
     const nextSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
-    notesList.select(nextSelectedIndex);
-    notesList.scrollTo(nextSelectedIndex);
+    selectListIndex(nextSelectedIndex);
   };
 
   const renderFooter = (): void => {
@@ -766,12 +777,17 @@ export const runTui = async (): Promise<number> => {
   };
 
   notesList.on("select item", (_, selectedIndex) => {
+    if (isSynchronizingListSelection) {
+      return;
+    }
+
     const filteredNotes = getFilteredNotes();
     const note = filteredNotes[selectedIndex];
-    if (note !== undefined) {
-      state.selectedNoteId = note.id;
-      renderAll();
+    if (note === undefined || note.id === state.selectedNoteId) {
+      return;
     }
+
+    state.selectedNoteId = note.id;
   });
 
   screen.on("resize", () => {
